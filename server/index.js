@@ -4,6 +4,7 @@ const PROTO_PATH = "./events.proto";
 
 let grpc = require("@grpc/grpc-js");
 let protoLoader = require("@grpc/proto-loader");
+const fs = require('fs');
 
 let packageDefinition = protoLoader.loadSync(PROTO_PATH, {
     keepCase: true,
@@ -29,8 +30,6 @@ const events = [
 ];
 
 const server = new grpc.Server();
-
-
 
 server.addService(eventsProto.EventService.service, {
 
@@ -96,7 +95,13 @@ server.addService(eventsProto.EventService.service, {
 });
 
 
-server.bindAsync("127.0.0.1:50051", grpc.ServerCredentials.createInsecure(), (error, port) => {
-    console.log(`Server listening at https://127.0.0.1:${port}`);
+let credentials = grpc.ServerCredentials.createSsl(
+    fs.readFileSync('./certs/ca.crt'), [{
+        cert_chain: fs.readFileSync('./certs/server.crt'),
+        private_key: fs.readFileSync('./certs/server.key')
+    }], true);
+
+server.bindAsync("0.0.0.0:50051", credentials, (error, port) => {
+    console.log(`Server listening at https://0.0.0.0:${port}`);
     server.start();
 });
